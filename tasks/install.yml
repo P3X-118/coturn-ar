@@ -1,0 +1,61 @@
+# SPDX-FileCopyrightText: 2026 SGC contributors
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+---
+- name: Ensure coturn paths exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0750"
+    owner: "{{ coturn_uid }}"
+    group: "{{ coturn_gid }}"
+  with_items:
+    - "{{ coturn_base_path }}"
+
+- name: Ensure coturn turnserver.conf is installed
+  ansible.builtin.template:
+    src: "{{ role_path }}/templates/turnserver.conf.j2"
+    dest: "{{ coturn_base_path }}/turnserver.conf"
+    mode: "0640"
+    owner: "{{ coturn_uid }}"
+    group: "{{ coturn_gid }}"
+  register: coturn_support_files_result
+
+- name: Ensure coturn container image is pulled via community.docker.docker_image
+  when: sysd_docker_image_pull_method == 'ansible-module'
+  community.docker.docker_image:
+    name: "{{ coturn_container_image }}"
+    source: "{{ 'pull' if ansible_version.major > 2 or ansible_version.minor > 7 else omit }}"
+    force_source: "{{ coturn_container_image_force_pull if ansible_version.major > 2 or ansible_version.minor >= 8 else omit }}"
+    force: "{{ omit if ansible_version.major > 2 or ansible_version.minor >= 8 else coturn_container_image_force_pull }}"
+  register: coturn_container_image_pull_result
+  retries: "{{ container_retry }}"
+  delay: "{{ container_retry_delay }}"
+  until: coturn_container_image_pull_result is not failed
+
+- name: Ensure coturn container image is pulled via ansible.builtin.command
+  when: sysd_docker_image_pull_method == 'command'
+  ansible.builtin.command:
+    cmd: "{{ sysd_docker_host_command }} pull {{ coturn_container_image }}"
+  register: coturn_container_image_pull_result
+  retries: "{{ container_retry }}"
+  delay: "{{ container_retry_delay }}"
+  until: coturn_container_image_pull_result is not failed
+  changed_when: "'Downloaded newer image' in coturn_container_image_pull_result.stdout"
+
+- name: Ensure coturn systemd service is present
+  ansible.builtin.template:
+    src: "{{ role_path }}/templates/systemd/coturn.service.j2"
+    dest: "{{ sysd_docker_service_path }}/{{ coturn_identifier }}.service"
+    mode: "0644"
+  register: coturn_systemd_service_result
+
+- name: Determine whether coturn needs a restart
+  ansible.builtin.set_fact:
+    coturn_restart_necessary: >-
+      {{
+        coturn_support_files_result.changed | default(false)
+        or coturn_systemd_service_result.changed | default(false)
+        or coturn_container_image_pull_result.changed | default(false)
+      }}

@@ -1,0 +1,26 @@
+# SPDX-FileCopyrightText: 2026 SGC contributors
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+---
+- name: Perform coturn installation tasks
+  when: coturn_enabled | bool
+  tags:
+    - setup-all
+    - setup-coturn
+    - install-all
+    - install-coturn
+  block:
+    - name: Validate coturn configuration
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/validate_config.yml"
+    - name: Install coturn
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/install.yml"
+
+- name: Perform coturn uninstallation tasks
+  when: not coturn_enabled | bool
+  tags:
+    - setup-all
+    - setup-coturn
+  block:
+    - name: Uninstall coturn
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/uninstall.yml"

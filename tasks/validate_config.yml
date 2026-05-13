@@ -1,0 +1,28 @@
+# SPDX-FileCopyrightText: 2026 SGC contributors
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+---
+- name: Fail if required coturn settings not defined
+  ansible.builtin.fail:
+    msg: >-
+      You need to define a required configuration setting (`{{ item }}`).
+  when: "lookup('vars', item, default='') | string | length == 0"
+  with_items:
+    - coturn_uid
+    - coturn_gid
+    - coturn_realm
+    - coturn_external_ip
+    - coturn_user_name
+    - coturn_user_password
+
+- name: Fail if TLS is enabled but cert/key paths are missing
+  ansible.builtin.fail:
+    msg: >-
+      coturn_tls_enabled is true but `{{ item }}` is empty.
+  when:
+    - coturn_tls_enabled | bool
+    - "lookup('vars', item, default='') | string | length == 0"
+  with_items:
+    - coturn_tls_cert_path
+    - coturn_tls_pkey_path

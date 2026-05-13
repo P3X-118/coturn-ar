@@ -1,0 +1,36 @@
+# SPDX-FileCopyrightText: 2026 SGC contributors
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+---
+- name: Check existence of coturn systemd service
+  ansible.builtin.stat:
+    path: "{{ sysd_docker_service_path }}/{{ coturn_identifier }}.service"
+  register: coturn_service_stat
+
+- name: Uninstall coturn systemd service and files
+  when: coturn_service_stat.stat.exists | bool
+  block:
+    - name: Ensure coturn systemd service is stopped
+      ansible.builtin.service:
+        name: "{{ coturn_identifier }}"
+        state: stopped
+        enabled: false
+        daemon_reload: true
+
+    - name: Ensure coturn systemd service does not exist
+      ansible.builtin.file:
+        path: "{{ sysd_docker_service_path }}/{{ coturn_identifier }}.service"
+        state: absent
+
+    - name: Ensure coturn support files do not exist
+      ansible.builtin.file:
+        path: "{{ coturn_base_path }}/turnserver.conf"
+        state: absent
+
+    - name: Ensure coturn base path does not exist if empty
+      ansible.builtin.command:
+        cmd: "rmdir {{ coturn_base_path }}"
+      register: coturn_base_path_deletion_result
+      changed_when: coturn_base_path_deletion_result.rc == 0
+      failed_when: false

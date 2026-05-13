@@ -1,0 +1,91 @@
+---
+# Project source: https://github.com/coturn/coturn
+
+coturn_enabled: true
+
+coturn_identifier: coturn
+coturn_base_path: "/{{ coturn_identifier }}"
+
+# renovate: datasource=docker depName=coturn/coturn
+coturn_version: 4.7.0-r0
+
+coturn_uid: ""
+coturn_gid: ""
+
+coturn_container_image: "{{ coturn_container_image_registry_prefix }}coturn/coturn:{{ coturn_container_image_tag }}"
+coturn_container_image_tag: "{{ coturn_version }}"
+coturn_container_image_registry_prefix: "{{ coturn_container_image_registry_prefix_upstream }}"
+coturn_container_image_registry_prefix_upstream: docker.io/
+coturn_container_image_force_pull: "{{ coturn_container_image.endswith(':latest') }}"
+
+# ============================================================
+# Coturn runtime configuration (rendered into turnserver.conf)
+# ============================================================
+
+# Realm and server-name advertised by coturn. Typically a hostname like turn.example.com.
+coturn_realm: ""
+coturn_server_name: "{{ coturn_realm }}"
+
+# External public IP advertised as the relay address (`external-ip`). REQUIRED for NAT.
+# Format: a single IP, or "PUBLIC_IP/PRIVATE_IP" if coturn is behind 1:1 NAT.
+coturn_external_ip: ""
+
+# Plain STUN/TURN listening port. Both UDP and TCP listeners bind here.
+coturn_listening_port: 3478
+
+# TLS listening port. Disabled by default (set coturn_tls_enabled: true to enable).
+coturn_tls_enabled: false
+coturn_tls_listening_port: 5349
+coturn_tls_cert_path: ""
+coturn_tls_pkey_path: ""
+
+# Media relay ephemeral port range (UDP).
+coturn_min_port: 49152
+coturn_max_port: 65535
+
+# Long-term credential mechanism. Single static user.
+coturn_user_name: ""
+coturn_user_password: ""
+
+# Operational limits.
+coturn_total_quota: 100
+coturn_stale_nonce: 600
+
+# Logging. By default, log to stdout for journald capture.
+coturn_no_stdout_log: false
+
+# Additional raw lines appended to turnserver.conf.
+coturn_additional_config: ""
+
+# ============================================================
+# Container plumbing
+# ============================================================
+
+# coturn requires host network mode because of the wide UDP media-port range.
+# Bridge networking with per-port publication is not viable for this workload.
+coturn_container_network_mode: host
+
+# List of systemd services that coturn requires.
+coturn_systemd_required_services_list: "{{ coturn_systemd_required_services_list_default + coturn_systemd_required_services_list_auto + coturn_systemd_required_services_list_custom }}"
+coturn_systemd_required_services_list_default: "{{ [sysd_docker_service] if sysd_docker_service else [] }}"
+coturn_systemd_required_services_list_auto: []
+coturn_systemd_required_services_list_custom: []
+
+# List of systemd services that coturn wants.
+coturn_systemd_wanted_services_list: "{{ coturn_systemd_wanted_services_list_default + coturn_systemd_wanted_services_list_auto + coturn_systemd_wanted_services_list_custom }}"
+coturn_systemd_wanted_services_list_default: []
+coturn_systemd_wanted_services_list_auto: []
+coturn_systemd_wanted_services_list_custom: []
+
+# A list of additional "volumes" to mount in the container.
+coturn_container_additional_volumes: "{{ coturn_container_additional_volumes_auto + coturn_container_additional_volumes_custom }}"
+coturn_container_additional_volumes_auto: []
+coturn_container_additional_volumes_custom: []
+
+# A list of extra arguments to pass to the container (`docker create` command).
+coturn_container_extra_arguments: "{{ coturn_container_extra_arguments_auto + coturn_container_extra_arguments_custom }}"
+coturn_container_extra_arguments_auto: []
+coturn_container_extra_arguments_custom: []
+
+# Auto-computed by install.yml.
+coturn_restart_necessary: false
