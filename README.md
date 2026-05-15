@@ -11,7 +11,7 @@ for the full variable surface.
 
 ## Required variables
 
-- `coturn_realm` — TURN realm (e.g. `hi.sgc.ai`).
+- `coturn_realm` — TURN realm (e.g. `meet.sgc.ai`).
 - `coturn_external_ip` — public IPv4 advertised as the relay address.
 - `coturn_user_name` / `coturn_user_password` — long-term credential.
 
